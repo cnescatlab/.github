@@ -1,0 +1,86 @@
+# Insert a license here if needed
+
+# Description
+# ===========
+# This workflow builds a docker image each time
+# a tag with the pattern 'v[0-9]+\.[0-9]+\.[0-9]+'
+# is pushed to GitHub.
+# It then pushes the image to DockerHub and create
+# a new Release on GitHub where it writes an
+# automatically generated changelog.
+# The image is tagged both with the tag value and 'latest'.
+
+# How to use this workflow
+# ========================
+# 1. Go to: GitHub project's page > Settings tab > Secrets > Add a new secret
+# 2. Add 2 secrets named "DOCKERHUB_USERNAME" and "DOCKERHUB_PASSWORD"
+# 3. Copy this workflow template in ".github/workflows/" in your project
+# 4. Tailor it to your project
+#   1. The environment variables
+#   2. The releases titles
+# 5. Commit and push to GitHub
+# 6. Watch live logs
+---
+name: Docker image Continuous Delivery to DockerHub Workflow
+
+# This workflow is triggered when a version tag is pushed.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+# Variables to configure the workflow
+env:
+  DOCKERFILE_PATH: '.'
+  DOCKERFILE_FILENAME: 'Dockerfile'
+  DOCKER_IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job that publish the Docker image on DockerHub
+  build-push:
+    name: Build the docker image and push it to DockerHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      # Build, tag and push the image to DockerHub
+      - name: Push to DockerHub
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.DOCKER_IMAGE_NAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          path: ${{ env.DOCKERFILE_PATH }}
+          dockerfile: ${{ env.DOCKERFILE_FILENAME }}
+          tags: latest
+          tag_with_ref: true
+      # Get the tag of the last release
+      - name: Get tag of last release
+        id: last_release
+        run: |
+          tags=($(git tag --sort="-v:refname"))
+          echo The tag of the previous release is ${tags[1]}
+          echo "::set-output name=tag::${tags[1]}"
+      # Generate the changelog since last release
+      - name: Generate the changelog
+        uses: charmixer/auto-changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          since_tag: ${{ steps.last_release.outputs.tag }}
+      # Append a link to the image on Docker Hub to the changelog
+      - name: Append link to Docker Hub
+        run: |
+          cat CHANGELOG.md > changelog.md
+          echo -e "\nDownload the image from DockerHub: " \
+            "https://hub.docker.com/r/$DOCKER_IMAGE_NAME" \
+            >> changelog.md
+      # Create a new release on GitHub
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body_path: changelog.md

@@ -1,0 +1,11 @@
+{
+    "name": "Docker image Continuous Integration Workflow",
+    "description": "Build and test a docker image (feat. hadolint, yamllint)",
+    "iconName": "docker",
+    "categories": [
+        "Dockerfile"
+    ],
+    "filePatterns": [
+        "Dockerfile"
+    ]
+}
