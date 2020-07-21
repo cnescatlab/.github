@@ -13,7 +13,7 @@
 # 1. Copy this workflow template in ".github/workflows/" in your project
 # 2. Tailor it to your project
 #   1. The environment variables
-#   2. The job that test the Docker image
+#   2. The job that tests the Docker image
 #   3. The location of the yamllint config file
 # 3. Commit and push to GitHub
 # 4. Watch live logs

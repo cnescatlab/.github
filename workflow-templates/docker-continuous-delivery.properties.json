@@ -1,6 +1,6 @@
 {
-    "name": "Docker image Continuous Delivery to DockerHub Workflow",
-    "description": "Build and push a Docker image to DockerHub when a tag is pushed and publish a new Release on GitHub",
+    "name": "Docker image Continuous Delivery to Docker Hub Workflow",
+    "description": "Build and push a Docker image to Docker Hub when a tag is pushed and publish a new Release on GitHub",
     "iconName": "docker",
     "categories": [
         "Dockerfile"

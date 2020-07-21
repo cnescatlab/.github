@@ -59,7 +59,7 @@ jobs:
       - name: Get tag of last release
         id: last_release
         run: |
-          tags=($(git tag --sort="-v:refname"))
+          tags=($(git tag --sort="-v:refname" | grep -P -e 'v[0-9]+.[0-9]+.[0-9]+'))
           echo The tag of the previous release is ${tags[1]}
           echo "::set-output name=tag::${tags[1]}"
       # Generate the changelog since last release
@@ -72,8 +72,8 @@ jobs:
       - name: Append link to Docker Hub
         run: |
           cat CHANGELOG.md > changelog.md
-          echo -e "\nDownload the image from DockerHub: " \
-            "https://hub.docker.com/r/$DOCKER_IMAGE_NAME" \
+          echo -e "\nView the image on" \
+            "[DockerHub](https://hub.docker.com/r/$DOCKER_IMAGE_NAME)." \
             >> changelog.md
       # Create a new release on GitHub
       - name: Create GitHub Release

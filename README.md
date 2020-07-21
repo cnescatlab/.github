@@ -14,3 +14,6 @@ This project contains [health file templates](https://docs.github.com/en/github/
 * GitHub Actions workflow templates
     * Docker image Continuous Integration Workflow
     * Docker image Continuous Delivery to DockerHub Workflow
+
+For detailed information and guides on the templates see the
+[Wiki](https://github.com/lequal/.github/wiki).
