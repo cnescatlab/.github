@@ -2,13 +2,17 @@
 
 # Description
 # ===========
-# This workflow builds a docker image each time
-# a tag with the pattern 'v[0-9]+\.[0-9]+\.[0-9]+'
-# is pushed to GitHub.
-# It then pushes the image to DockerHub and create
-# a new Release on GitHub where it writes an
+# This workflow is triggered each time all issues
+# linked to a milestone which title matches
+# the pattern 'v[0-9]+\.[0-9]+\.[0-9]+' are closed.
+# It then merges the develop branch into the master branch
+# and tags the master branch with the title of the milestone.
+# After, it builds a docker image and pushes the image
+# to DockerHub.
+# The image is tagged both with 'latest' and the milestone title.
+# Finally, it creates a new Release on GitHub where it writes an
 # automatically generated changelog.
-# The image is tagged both with the tag value and 'latest'.
+# It also close the milestone (which is 100% completed).
 
 # How to use this workflow
 # ========================
@@ -23,11 +27,10 @@
 ---
 name: Docker image Continuous Delivery to DockerHub Workflow
 
-# This workflow is triggered when a version tag is pushed.
+# This workflow is triggered each time an issue is closed
 on:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+  issues:
+    types: [closed]
 
 # Variables to configure the workflow
 env:
@@ -36,14 +39,39 @@ env:
   DOCKER_IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Job that publish the Docker image on DockerHub
-  build-push:
-    name: Build the docker image and push it to DockerHub
+  release:
+    name: Release a new version of the docker image
     runs-on: ubuntu-latest
+    # The job is run only if the issue is associated with a milestone
+    # that has all its issues closed
+    if: github.event.issue.milestone != null && github.event.issue.milestone.open_issues == 0 && startsWith(github.event.issue.milestone.title, 'v') && contains(github.event.issue.milestone.title, '.')
     steps:
+      - name: Milestone title match pattern
+        id: test_title
+        run: |
+          [[ ${{ github.event.issue.milestone.title }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "::set-output name=milestone_title_is_version::$?"
+      # If the title of the milestone does not match the
+      # pattern v[0-9]+.[0-9]+.[0-9]+, the job is canceled
+      - if: steps.test_title.outputs.milestone_title_is_version == 1
+        name: Is milestone title OK?
+        run: |
+          echo Malformed milestone name, it must match v[0-9]+.[0-9]+.[0-9]+
+          exit 1
+      # git clone
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      # Merge develop into master and tag master
+      - name: Merge and tag
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email L-lequal@cnes.fr
+          git checkout master
+          git merge origin/develop
+          git tag -a ${{ github.event.issue.milestone.title }} \
+            -m "Release ${{ github.event.issue.milestone.title }}"
+          git push origin master --follow-tags
       # Build, tag and push the image to DockerHub
       - name: Push to DockerHub
         uses: docker/build-push-action@v1
@@ -53,13 +81,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           path: ${{ env.DOCKERFILE_PATH }}
           dockerfile: ${{ env.DOCKERFILE_FILENAME }}
-          tags: latest
-          tag_with_ref: true
+          tags: latest,${{ github.event.issue.milestone.title }}
       # Get the tag of the last release
       - name: Get tag of last release
         id: last_release
         run: |
-          tags=($(git tag --sort="-v:refname" | grep -P -e 'v[0-9]+.[0-9]+.[0-9]+'))
+          tags=($(git tag --sort="-v:refname" | grep -P -e 'v[0-9]+\.[0-9]+\.[0-9]+'))
           echo The tag of the previous release is ${tags[1]}
           echo "::set-output name=tag::${tags[1]}"
       # Generate the changelog since last release
@@ -84,3 +111,11 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body_path: changelog.md
+      # Close the milestone (that is now 100% completed)
+      - name: Close milestone
+        run: |
+          curl --request PATCH \
+            --url https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones/${{ github.event.issue.milestone.number }} \
+            --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            --header 'Content-Type: application/json' \
+            --data '{"state":"closed"}'
