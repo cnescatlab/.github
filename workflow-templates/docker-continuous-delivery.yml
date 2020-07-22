@@ -4,7 +4,7 @@
 # ===========
 # This workflow is triggered each time all issues
 # linked to a milestone which title matches
-# the pattern 'v[0-9]+\.[0-9]+\.[0-9]+' are closed.
+# the pattern '[0-9]+\.[0-9]+\.[0-9]+' are closed.
 # It then merges the develop branch into the master branch
 # and tags the master branch with the title of the milestone.
 # After, it builds a docker image and pushes the image
@@ -49,14 +49,14 @@ jobs:
       - name: Milestone title match pattern
         id: test_title
         run: |
-          [[ ${{ github.event.issue.milestone.title }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ ${{ github.event.issue.milestone.title }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           echo "::set-output name=milestone_title_is_version::$?"
       # If the title of the milestone does not match the
-      # pattern v[0-9]+.[0-9]+.[0-9]+, the job is canceled
+      # pattern [0-9]+.[0-9]+.[0-9]+, the job is canceled
       - if: steps.test_title.outputs.milestone_title_is_version == 1
         name: Is milestone title OK?
         run: |
-          echo Malformed milestone name, it must match v[0-9]+.[0-9]+.[0-9]+
+          echo Malformed milestone name, it must match [0-9]+.[0-9]+.[0-9]+
           exit 1
       # git clone
       - uses: actions/checkout@v2
@@ -86,7 +86,7 @@ jobs:
       - name: Get tag of last release
         id: last_release
         run: |
-          tags=($(git tag --sort="-v:refname" | grep -P -e 'v[0-9]+\.[0-9]+\.[0-9]+'))
+          tags=($(git tag --sort="-v:refname" | grep -P -e '[0-9]+\.[0-9]+\.[0-9]+'))
           echo The tag of the previous release is ${tags[1]}
           echo "::set-output name=tag::${tags[1]}"
       # Generate the changelog since last release
