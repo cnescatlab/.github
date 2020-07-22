@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     # The job is run only if the issue is associated with a milestone
     # that has all its issues closed
-    if: github.event.issue.milestone != null && github.event.issue.milestone.open_issues == 0 && startsWith(github.event.issue.milestone.title, 'v') && contains(github.event.issue.milestone.title, '.')
+    if: github.event.issue.milestone != null && github.event.issue.milestone.open_issues == 0 && contains(github.event.issue.milestone.title, '.')
     steps:
       - name: Milestone title match pattern
         id: test_title
