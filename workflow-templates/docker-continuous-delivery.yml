@@ -108,8 +108,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ github.event.issue.milestone.title }}
+          release_name: Image ${{ env.DOCKER_IMAGE_NAME }}:${{ github.event.issue.milestone.title }}
           body_path: changelog.md
       # Close the milestone (that is now 100% completed)
       - name: Close milestone
