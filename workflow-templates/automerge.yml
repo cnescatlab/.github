@@ -1,0 +1,53 @@
+# Insert a license here if needed
+
+# Description
+# ===========
+# This workflow is similar to the example of
+# https://github.com/marketplace/actions/merge-pull-requests
+# It automatically merges a pull request when:
+#   * the required number of review approvals has been given (see repo settings)
+#   * the required checks have passed (see repo settings)
+#   * the pull request is up to date (see repo settings)
+
+# How to use this workflow
+# ========================
+# 1. Copy this workflow template in ".github/workflows/" in your project
+# 2. Set the GITHUB_TOKEN environment variable of the action
+# pascalgn/automerge-action, it must be a Personal Access Token with
+# write permission to the repo for workflows triggered on push to be
+# executed when the pull request is merged.
+# See https://docs.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token
+---
+name: Automerge-PR
+
+# Events of the example
+on:
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - opened
+      - edited
+      - ready_for_review
+      - reopened
+      - unlocked
+  pull_request_review:
+    types:
+      - submitted
+  check_suite:
+    types:
+      - completed
+  status: {}
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: automerge
+        uses: "pascalgn/automerge-action@v0.9.0"
+        env:
+          GITHUB_TOKEN: "TODO: Give me a value like ${{ secrets.PAT_GITHUB_ACTIONS }}"
+          MERGE_LABELS: ""
+          MERGE_DELETE_BRANCH: true
+          UPDATE_LABELS: ""

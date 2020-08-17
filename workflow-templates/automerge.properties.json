@@ -1,0 +1,7 @@
+{
+    "name": "Automerge-PR",
+    "description": "Automatically merge pull requests when reviewed, checked and up to date",
+    "iconName": "",
+    "categories": [],
+    "filePatterns": []
+}
