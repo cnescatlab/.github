@@ -2,14 +2,12 @@
 
 # Description
 # ===========
-# This workflow is triggered each time all issues
-# linked to a milestone which title matches
-# the pattern '[0-9]+\.[0-9]+\.[0-9]+' are closed.
+# This workflow is triggered each time the CI workflow succeed
+# on develop.
+# It looks for the first milestone that is completed.
+# It must have a title matching the pattern `'[0-9]+\.[0-9]+\.[0-9]+'`.
 # It then merges the develop branch into the master branch
 # and tags the master branch with the title of the milestone.
-# After, it builds a docker image and pushes the image
-# to DockerHub.
-# The image is tagged both with 'latest' and the milestone title.
 # Finally, it creates a new Release on GitHub where it writes an
 # automatically generated changelog.
 # It also close the milestone (which is 100% completed).
@@ -17,20 +15,27 @@
 # How to use this workflow
 # ========================
 # 1. Go to: GitHub project's page > Settings tab > Secrets > Add a new secret
-# 2. Add 2 secrets named "DOCKERHUB_USERNAME" and "DOCKERHUB_PASSWORD"
-# 3. Copy this workflow template in ".github/workflows/" in your project
-# 4. Tailor it to your project
-#   1. The environment variables
-#   2. The releases titles
-# 5. Commit and push to GitHub
-# 6. Watch live logs
+# and add 2 secrets named "DOCKERHUB_USERNAME" and "DOCKERHUB_PASSWORD".
+# Alternatively, you can remove the step Push to DockerHub and set up
+# [Docker Hub Build](https://docs.docker.com/docker-hub/builds/)
+# to build new images when new tags are published or when master is updated.
+# 2. Copy this workflow template in ".github/workflows/" in your project
+# 3. Tailor it to your project
+#     1. Give custom values to the environment variables
+#     2. Change the releases titles by changing the value of "release_name"
+#     of the job "Create GitHub Release"
+# 4. Commit and push to GitHub
+# 5. Watch live logs
 ---
 name: Docker image Continuous Delivery to DockerHub Workflow
 
-# This workflow is triggered each time an issue is closed
+# This workflow is triggered when the CI workflow ends
 on:
-  issues:
-    types: [closed]
+  workflow_run:
+    workflows: ["Docker image Continuous Integration Workflow"]
+    branches: [develop]
+    types:
+      - completed
 
 # Variables to configure the workflow
 env:
@@ -39,38 +44,63 @@ env:
   DOCKER_IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Job to test if a new version is ready to be released
+  deliverability:
+    name: Check if a new version must be released
+    runs-on: ubuntu-latest
+    # The job is run only if the CI workflow succeeded
+    if: github.event.workflow_run.conclusion == 'success'
+    outputs:
+      delivery: ${{ steps.version.outputs.delivery }}
+      version: ${{ steps.version.outputs.version }}
+      milestone_number: ${{ steps.version.outputs.milestone_number }}
+    steps:
+      # Get the version number from the milestone title and that it follows semver
+      - name: Get and check version
+        id: version
+        run: |
+          milestones=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/${{ github.repository }}/milestones \
+            | jq -r '. | map(select(.open_issues == 0 and .closed_issues > 0 and .state == "open"))')
+          if [ "$milestones" == "[]" ]
+          then
+            echo No milestone completed, not delivering
+            echo "::set-output name=delivery::forbidden"
+            exit 0
+          fi
+          echo -e "Completed milestones:\n$milestones"
+          version=$(echo "$milestones" | jq -r '.[0].title')
+          milestone_number=$(echo "$milestones" | jq -r '.[0].number')
+          echo Milestone $milestone_number has title $version
+          echo Checking milestone title is a version number
+          if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          then
+            echo "Malformed milestone title: $version. It must match [0-9]+.[0-9]+.[0-9]+"
+            exit 1
+          fi
+          echo Ready to deliver
+          echo "::set-output name=version::$version"
+          echo "::set-output name=milestone_number::$milestone_number"
+          echo "::set-output name=delivery::allowed"
   release:
     name: Release a new version of the docker image
     runs-on: ubuntu-latest
-    # The job is run only if the issue is associated with a milestone
-    # that has all its issues closed
-    if: github.event.issue.milestone != null && github.event.issue.milestone.open_issues == 0 && contains(github.event.issue.milestone.title, '.')
+    needs: deliverability
+    if: needs.deliverability.outputs.delivery == 'allowed'
     steps:
-      - name: Milestone title match pattern
-        id: test_title
-        run: |
-          [[ ${{ github.event.issue.milestone.title }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          echo "::set-output name=milestone_title_is_version::$?"
-      # If the title of the milestone does not match the
-      # pattern [0-9]+.[0-9]+.[0-9]+, the job is canceled
-      - if: steps.test_title.outputs.milestone_title_is_version == 1
-        name: Is milestone title OK?
-        run: |
-          echo Malformed milestone name, it must match [0-9]+.[0-9]+.[0-9]+
-          exit 1
       # git clone
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      # Merge develop into master and tag master
+      # Merge develop into master (fast forward) and tag master
       - name: Merge and tag
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email L-lequal@cnes.fr
-          git checkout master
+          git checkout --track origin/master
           git merge origin/develop
-          git tag -a ${{ github.event.issue.milestone.title }} \
-            -m "Release ${{ github.event.issue.milestone.title }}"
+          git tag -a ${{ needs.deliverability.outputs.version }} \
+            -m "Release ${{ needs.deliverability.outputs.version }}"
           git push origin master --follow-tags
       # Build, tag and push the image to DockerHub
       - name: Push to DockerHub
@@ -81,7 +111,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           path: ${{ env.DOCKERFILE_PATH }}
           dockerfile: ${{ env.DOCKERFILE_FILENAME }}
-          tags: latest,${{ github.event.issue.milestone.title }}
+          tags: latest,${{ needs.deliverability.outputs.version }}
       # Get the tag of the last release
       - name: Get tag of last release
         id: last_release
@@ -108,14 +138,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.event.issue.milestone.title }}
-          release_name: Image ${{ env.DOCKER_IMAGE_NAME }}:${{ github.event.issue.milestone.title }}
+          tag_name: ${{ needs.deliverability.outputs.version }}
+          release_name: ${{ env.DOCKER_IMAGE_NAME }}:${{ needs.deliverability.outputs.version }}
           body_path: changelog.md
       # Close the milestone (that is now 100% completed)
       - name: Close milestone
         run: |
           curl --request PATCH \
-            --url https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones/${{ github.event.issue.milestone.number }} \
+            --url https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones/${{ needs.deliverability.outputs.milestone_number }} \
             --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             --header 'Content-Type: application/json' \
             --data '{"state":"closed"}'
