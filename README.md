@@ -1,6 +1,6 @@
-# LEQUAL .github
+# CATLab's .github
 
-This project contains [health file templates](https://docs.github.com/en/github/building-a-strong-community/creating-a-default-community-health-file) and other LEQUAL templates.
+This project contains [health file templates](https://docs.github.com/en/github/building-a-strong-community/creating-a-default-community-health-file) and other CATLab templates.
 
 ## Current content
 
@@ -16,4 +16,4 @@ This project contains [health file templates](https://docs.github.com/en/github/
     * Docker image Continuous Delivery to DockerHub Workflow
 
 For detailed information and guides on the templates see the
-[Wiki](https://github.com/lequal/.github/wiki).
+[Wiki](https://github.com/cnescatlab/.github/wiki).

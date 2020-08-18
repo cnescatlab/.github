@@ -1,7 +1,7 @@
-# Contributing to LEQUAL projects
+# Contributing to CATLab projects
 
 First off, thanks for taking the time to contribute!
-The following is a set of guidelines for contributing to LEQUAL projects, which are hosted in the [Lequal Organization](https://github.com/lequal) on GitHub. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
+The following is a set of guidelines for contributing to CATLab projects, which are hosted in the [CATLab Organization](https://github.com/cnescatlab) on GitHub. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
 #### Table Of Contents
 
@@ -14,7 +14,7 @@ The following is a set of guidelines for contributing to LEQUAL projects, which 
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [Lequal Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to administrators via GitHub issues.
+This project and everyone participating in it is governed by the [CATLab Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to administrators via GitHub issues.
 
 ## How Can I Contribute?
 
@@ -79,7 +79,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 
 All contributions are welcome. They are made via a *pull request* on the branch `develop` which is the branch of the next version.
 
-* pull requests with **major** changes must be approved by at least one maintainer of each team and the LEQUAL.
+* pull requests with **major** changes must be approved by at least one maintainer of each team and CATLab.
 
 * pull requests with **minor** changes must be approved by at least one organization's member.
  
