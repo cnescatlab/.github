@@ -69,6 +69,16 @@ jobs:
         run: |
           output=$(docker run $DOCKER_IMAGE_NAME)
           test -n "$(echo $output | grep Hello World!)"
+          echo -e "Results of the CI pipeline\n" > tests_logs.txt
+          echo "This is the output of the tests: $output" | tee -a tests_logs.txt
+      # Publish test results in the pull request discussion
+      - name: Comment the Pull Request
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          header: CI tests results
+          path: tests_logs.txt
   # Job that runs the Dockerfile linter
   lint-Dockerfile:
     name: Run hadolint on the Dockerfile
