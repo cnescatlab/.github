@@ -1,0 +1,11 @@
+{
+    "name": "Automatic milestone closing workflow",
+    "description": "Close automatically a completed milestone",
+    "iconName": "",
+    "categories": [
+        "Java"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}

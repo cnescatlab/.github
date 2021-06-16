@@ -1,0 +1,11 @@
+{
+    "name": "Maven Java Continuous Integration Workflow",
+    "description": "Build a jar and execute a SonarCloud analysis",
+    "iconName": "",
+    "categories": [
+        "Java"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}

@@ -1,0 +1,82 @@
+# Insert a license here if needed
+
+# Description
+# ===========
+# This workflow is triggered each time
+# commits are pushed to GitHub or a pull request is opened.
+# It launches three jobs in parallel : a build with java 8,
+# a build with java 11 and a SonarCloud analysis.
+
+# How to use this workflow
+# ========================
+# 1. Go to: GitHub project's page > Settings tab > Secrets > Add a new secret
+# and add a secret named "SONAR_TOKEN".
+# 2. Copy this workflow template in ".github/workflows/" in your project
+# 3. Custom it to add tests.
+# 4. Commit and push to GitHub
+# 5. Watch live logs
+---
+name: Java CI
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ '8', '11' ]
+    name: Java ${{ matrix.Java }} CI
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Setup java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: ${{ matrix.java }}
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build with Maven
+        run: mvn -B clean package
+      # Add here tests involving the generated jar
+
+  code-analysis:
+    runs-on: ubuntu-latest    
+    name: SonarCloud Code Analysis
+    # It's not possible to launch an analysis on external pull requests
+    if: ${{ github.repository_owner == 'cnescatlab' }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Setup java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Build and analyze
+        env:
+          # Needed to get some information about the pull request, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # SonarCloud access token should be generated from https://sonarcloud.io/account/security/
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dsonar.organization=lequal -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN

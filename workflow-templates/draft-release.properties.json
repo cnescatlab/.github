@@ -1,0 +1,11 @@
+{
+    "name": "Draft release workflow",
+    "description": "Draft a release when a milestone is closed",
+    "iconName": "",
+    "categories": [
+        "Java"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}
